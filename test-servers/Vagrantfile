@@ -1,0 +1,46 @@
+Vagrant.configure("2") do |config|
+
+  vagrant_home = "/home/vagrant"
+  ansible_dir = "#{vagrant_home}/ansible"
+
+  config.vm.box = "ubuntu/focal64"
+  config.vm.box_version = "20240821.0.1"
+
+  config.vm.define "controller_server" do |controller_server|
+    controller_server.vm.hostname = "test-server-controller"
+    controller_server.vm.network :private_network, ip:"192.168.97.30", virtualbox__hostonly: "vboxnet1"
+    controller_server.vm.provision "file", source: "aws_sso_config.yaml", destination: "#{ansible_dir}/aws_sso_config.yaml" ## TODO: Use IAM user short-term credentials instead of SSO.
+    controller_server.vm.provision "shell", privileged: false, name: "init", path: "init.sh",
+      env: {
+        "VAGRANT_HOME" => vagrant_home,
+        "ANSIBLE_DIR"  => ansible_dir
+      }
+    controller_server.vm.provider "virtualbox" do |vb|
+      vb.name = "Test Server Controller"
+      vb.customize ["modifyvm", :id, "--groups", "/Test"]
+    end
+  end
+
+  config.vm.define "target_server" do |target_server|
+    target_server.vm.hostname = "test-server-01"
+    target_server.vm.network :private_network, ip:"192.168.97.31", virtualbox__hostonly: "vboxnet1"
+    target_server.vm.provision "shell",  privileged: false, inline: <<-SHELL
+      # To allow ssh-copy-id from the controller server to the target server.
+      sudo sed -i '/^PasswordAuthentication no/d' /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+      sudo systemctl restart ssh
+
+      # Install GUI (Needs system restart)
+      sudo apt update
+      sudo apt-get install --yes ubuntu-desktop
+
+      # Set the dva-study AWS profile
+      echo "export AWS_PROFILE=dva-study" >> ~/.bashrc
+    SHELL
+    target_server.vm.provider "virtualbox" do |vb|
+      vb.name = "Test Server 01"
+      vb.memory = 4096
+      vb.cpus = 4
+      vb.customize ["modifyvm", :id, "--groups", "/Test"]
+    end
+  end
+end

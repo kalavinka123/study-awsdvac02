@@ -1,0 +1,3 @@
+test-servers/.vault_pass.txt
+test-servers/.vagrant
+test-servers/aws_sso_config.yaml
