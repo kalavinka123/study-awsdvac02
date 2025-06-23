@@ -1,0 +1,80 @@
+# -----------------------------------------------------------------------------
+# AWS CloudFormation template for AWS CDK bootstrap permission set
+# This template creates a least privilege permission set for managing IAM roles
+# required during CDK bootstrap process.
+#
+# Reference for Type AWS::SSO::PermissionSet and AWS::SSO::Assignment
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-sso-permissionset.html#cfn-sso-permissionset-sessionduration
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-sso-assignment.html#cfn-sso-assignment-principalid
+#
+# Assuming a role with the necessary IAM permissions is required to create the stack from this template
+# -----------------------------------------------------------------------------
+
+Resources:
+  CdkBootstrapPermissions:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      Name: CdkBootstrapPermissions
+      Description: Least privilege permission set for managing IAM roles required by
+        AWS CDK bootstrap.
+      InstanceArn: arn:aws:sso:::instance/ssoins-77589a3bb5b3f7c0
+      SessionDuration: PT8H # 8 Hours in ISO 8601 duration format
+      InlinePolicy: !Sub |-
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "CdkBootstrapPermissions",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DeleteStack",
+                "ecr:SetRepositoryPolicy",
+                "ecr:PutLifecyclePolicy",
+                "ecr:PutImageTagMutability",
+                "ecr:DescribeRepositories",
+                "ecr:ListTagsForResource",
+                "ecr:GetLifecyclePolicy",
+                "ecr:CreateRepository",
+                "ecr:DeleteRepository",
+                "ssm:PutParameter",
+                "ssm:GetParameters",
+                "ssm:DeleteParameter",
+                "iam:GetRole",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:DeleteRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:AttachRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:TagRole",
+                "iam:GetRolePolicy",
+                "s3:CreateBucket",
+                "s3:PutEncryptionConfiguration",
+                "s3:PutLifecycleConfiguration",
+                "s3:PutBucketVersioning",
+                "s3:PutBucketPublicAccessBlock",
+                "s3:DeleteBucketPolicy",
+                "s3:PutBucketPolicy"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+
+  CdkBootstrapPermissionsAssignment:
+    Type: AWS::SSO::Assignment
+    # DependsOn: CdkBootstrapPermissions
+    Properties:
+      InstanceArn: arn:aws:sso:::instance/ssoins-77589a3bb5b3f7c0
+      PermissionSetArn: !GetAtt CdkBootstrapPermissions.PermissionSetArn
+      PrincipalId: a7348a08-b0c1-7078-2a6d-97378536dfaa
+      PrincipalType: USER
+      TargetId: '096966628981'
+      TargetType: AWS_ACCOUNT
