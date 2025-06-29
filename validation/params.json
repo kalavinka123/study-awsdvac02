@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "GitHubOrg",
+    "ParameterValue": "kalavinka123"
+  },
+  {
+    "ParameterKey": "RepositoryName",
+    "ParameterValue": "study-awsdvac02"
+  },
+  {
+    "ParameterKey": "OIDCProviderArn",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "OIDCAudience",
+    "ParameterValue": "sts.amazonaws.com"
+  }
+]

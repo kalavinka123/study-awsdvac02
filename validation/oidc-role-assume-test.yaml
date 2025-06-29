@@ -1,0 +1,88 @@
+# -----------------------------------------------------------------------------
+# Create a stack with the following CLI command.
+# `aws cloudformation create-stack --stack-name oicd-role-assume-test --template-body file://oidc-role-assume-test.yaml --capabilities CAPABILITY_IAM --parameters file://params.json`
+#
+# To execute the command above with the admin permission, assume the admin role, whose arn can be found by the output of the following command.
+# `aws cloudformation describe-stacks --stack-name admin-role-for-sso --query "Stacks[0].Outputs[].OutputValue"`
+#
+# Assume role by setting AWS environment variables.
+#   export AWS_ACCESS_KEY_ID="xxxx"
+#   export AWS_SECRET_ACCESS_KEY="xxxx"
+#   export AWS_SESSION_TOKEN="xxxx"
+# -----------------------------------------------------------------------------
+
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  GitHubOrg:
+    Description: Name of GitHub organization/user (case sensitive)
+    Type: String
+  RepositoryName:
+    Description: Name of GitHub repository (case sensitive)
+    Type: String
+  OIDCProviderArn:
+    Description: Arn for the GitHub OIDC Provider.
+    Default: ""
+    Type: String
+  OIDCAudience:
+    Description: Audience supplied to configure-aws-credentials.
+    Default: "sts.amazonaws.com"
+    Type: String
+
+Conditions:
+  CreateOIDCProvider: !Equals 
+    - !Ref OIDCProviderArn
+    - ""
+
+Resources:
+  ### S3 Bucket with hardcoded name
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket-for-oidc-federation-test
+
+  ### IAM Role for GitHub OIDC
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !If 
+                - CreateOIDCProvider
+                - !Ref GithubOidc
+                - !Ref OIDCProviderArn
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: !Ref OIDCAudience
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${RepositoryName}:*
+      Policies:
+        - PolicyName: ReadS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${MyS3Bucket}
+                  - !Sub arn:aws:s3:::${MyS3Bucket}/*
+
+  ### OIDC Provider (created only if not passed)
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: 
+        - sts.amazonaws.com
+      ThumbprintList:
+        - ffffffffffffffffffffffffffffffffffffffff
+
+Outputs:
+  Role:
+    Value: !GetAtt Role.Arn 
