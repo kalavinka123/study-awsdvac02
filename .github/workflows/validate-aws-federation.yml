@@ -11,6 +11,9 @@ on:
   pull_request:
     branches: [ "develop" ]
 
+env:
+  BUCKET_NAME : "BUCKET-NAME"
+
 permissions:
   id-token: write   # This is required for requesting the JWT
   contents: read    # This is required for actions/checkout
@@ -30,4 +33,4 @@ jobs:
           role-session-name: testrolesession
         
       - name: List S3 buckets
-        run: aws s3 ls
+        run: aws s3 ls ${{ env.BUCKET_NAME }}
