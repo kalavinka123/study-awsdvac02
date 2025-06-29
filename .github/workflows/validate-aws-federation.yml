@@ -12,7 +12,7 @@ on:
     branches: [ "develop" ]
 
 env:
-  BUCKET_NAME : "BUCKET-NAME"
+  BUCKET_NAME : "my-bucket-for-oidc-federation-test"
 
 permissions:
   id-token: write   # This is required for requesting the JWT
