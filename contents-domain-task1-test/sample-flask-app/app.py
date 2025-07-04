@@ -28,10 +28,10 @@ def index():
     
 @app.route('/login')
 def login():
-    # Alternate option to redirect to /authorize
     redirect_uri = url_for('authorize', _external=True)
+    # Redirect the user to the identity provider's login page (Cognito) which is registered in oauth.register().
+    # When login is done, have Cognito send them back to /authorize.
     return oauth.oidc.authorize_redirect(redirect_uri)
-    # return oauth.oidc.authorize_redirect('http://localhost:5000/authorize')
 
 @app.route('/authorize')
 def authorize():

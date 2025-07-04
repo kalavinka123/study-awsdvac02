@@ -9,7 +9,7 @@
 #
 # Assuming a role with the necessary IAM permissions is required to create the stack from this template
 # -----------------------------------------------------------------------------
-
+AWSTemplateFormatVersion: "2010-09-09"
 Resources:
   CdkBootstrapPermissions:
     Type: AWS::SSO::PermissionSet
