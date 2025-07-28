@@ -28,8 +28,8 @@ cdk-projects/**/cdk.out
 cdk-projects/**/.gitignore
 
 ## pycache and secrets
-contents-domain-task1-test/sample-flask-app/.env
-contents-domain-task1-test/sample-flask-app/__pycache__
+contents-domain2-task1-test/sample-flask-app/.env
+contents-domain2-task1-test/sample-flask-app/__pycache__
 
 ## Pyhton virtual env
 my-test-env
