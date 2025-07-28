@@ -1,0 +1,68 @@
+# -----------------------------------------------------------------------------
+# Create a stack with the following CLI command.
+# `aws cloudformation create-stack --stack-name lambda-esm-test --template-body file://lambda-esm-test-cfn.yaml --capabilities CAPABILITY_NAMED_IAM
+#
+#-----------------------------------------------------------------------------
+# TODO : This assuming of role shouldn't be performed in an usual deployment process. Use the CICD pipeline.
+#
+# To execute the command above with the admin permission, assume the admin role, whose arn can be found by the output of the following command.
+# `aws cloudformation describe-stacks --stack-name admin-role-for-sso --query "Stacks[0].Outputs[].OutputValue"`
+#
+# Assume role by setting AWS environment variables.
+# `aws sts assume-role --role-arn arn:aws:iam::096966628981:role/AdminAccessForSSO --role-session-name tmp-session`
+#
+#   export AWS_ACCESS_KEY_ID="xxxx"
+#   export AWS_SECRET_ACCESS_KEY="xxxx"
+#   export AWS_SESSION_TOKEN="xxxx"
+#
+# -----------------------------------------------------------------------------
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Lambda with Event Source Mapping Test
+
+Resources:
+  # IAM Role for Lambda
+  MyLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: my-lambda-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # SQS Queue
+  MyQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: my-test-queue
+
+  # Lambda Function
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my-test-lambda
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt MyLambdaExecutionRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              print("Received event:", event)
+              return {"statusCode": 200, "body": "Hello from Lambda"}
+
+  # Event Source Mapping (SQS -> Lambda)
+  MySQSEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt MyQueue.Arn
+      FunctionName: !Ref MyLambdaFunction
+      Enabled: true
+      BatchSize: 5
