@@ -33,3 +33,12 @@ contents-domain2-task1-test/sample-flask-app/__pycache__
 
 ## Pyhton virtual env
 my-test-env
+**/.venv
+
+## Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+
+## VScode setting
+**/.vscode/
