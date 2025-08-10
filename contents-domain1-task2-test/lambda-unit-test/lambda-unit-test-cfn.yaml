@@ -1,0 +1,99 @@
+# Create a stack with the following CLI command.
+# `aws cloudformation create-stack --stack-name lambda-unit-test --template-body file://lambda-unit-test-cfn.yaml --capabilities CAPABILITY_NAMED_IAM --parameters file://params.json`
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Sample Lambda for Unit test
+
+Parameters:
+  EcrImageUri:
+    Type: String
+    Description: Full ECR image URI (e.g., 123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/my-lambda-image:latest)
+  NotificationEmail:
+    Type: String
+    Description: Email address to receive notifications
+
+Resources:
+  # IAM Role for Lambda
+  MyLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: my-lambda-for-unit-test-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  # Lambda Function
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my-lambda-for-unit-test
+      PackageType: Image
+      Role: !GetAtt MyLambdaExecutionRole.Arn
+      Timeout: 30
+      Code:
+        ImageUri: !Ref EcrImageUri
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          TOPIC_ARN: !Ref MySnsTopic
+          S3_BUCKET_NAME: !Ref MyS3Bucket
+
+  ## The AWS::Lambda::Permission resource grants an AWS service or another account permission to use a function. 
+  MyLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MyLambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt MyS3Bucket.Arn    
+
+  MyLambdaAsync:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      DestinationConfig:
+          OnSuccess:
+            Destination: !Ref MySnsTopic
+      FunctionName: !Ref MyLambdaFunction
+      MaximumEventAgeInSeconds: 300
+      MaximumRetryAttempts: 1
+      Qualifier: "$LATEST"
+
+  # S3
+  ###########################################
+  # If you create the target resource and related permissions in the same template, you might have a circular dependency.
+  # For example, you might use the AWS::Lambda::Permission resource to grant the bucket permission to invoke an AWS Lambda function. However, AWS CloudFormation can't create the bucket until the bucket has permission to invoke the function (AWS CloudFormation checks whether the bucket can invoke the function). If you're using Refs to pass the bucket name, this leads to a circular dependency.
+  # To avoid this dependency, you can create all resources without specifying the notification configuration. Then, update the stack with a notification configuration.
+  #
+  # Refer to: https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-s3-bucket-notificationconfiguration.html
+  ###########################################
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+  ########### Uncomment below when updating the stack ############
+    # Properties:
+    #   NotificationConfiguration:
+    #     LambdaConfigurations:
+    #       - Event: s3:ObjectCreated:*
+    #         Function: !GetAtt MyLambdaFunction.Arn
+  ################################################################
+
+  # SNS
+  MySnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Upload Notification Topic
+
+  MySnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+      TopicArn: !Ref MySnsTopic      

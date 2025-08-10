@@ -1,0 +1,13 @@
+# To build the Docker image using buildx
+`sudo docker buildx build --platform linux/amd64 --provenance=false -t lambda-func-test:test .`
+
+# To upload the image to ECR
+`aws ecr get-login-password --region ap-northeast-1 | sudo docker login --username AWS --password-stdin 096966628981.dkr.ecr.ap-northeast-1.amazonaws.com`
+``
+
+# To create a repo in ECR (if not already done)
+`aws ecr create-repository --repository-name lambda-sandbox --region ap-northeast-1 --image-scanning-configuration scanOnPush=true --image-tag-mutability MUTABLE`
+
+# To push Docker image to ECR
+`sudo docker tag lambda-func-test:test 096966628981.dkr.ecr.ap-northeast-1.amazonaws.com/lambda-sandbox:latest`
+`sudo docker push 096966628981.dkr.ecr.ap-northeast-1.amazonaws.com/lambda-sandbox:latest`

@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "EcrImageUri",
+    "ParameterValue": "096966628981.dkr.ecr.ap-northeast-1.amazonaws.com/lambda-sandbox:latest"
+  },
+  {
+    "ParameterKey": "NotificationEmail",
+    "ParameterValue": "wonjinju91@gmail.com"
+  }
+]
