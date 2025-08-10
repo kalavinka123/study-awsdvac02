@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 # Create a stack with the following CLI command.
-# `aws cloudformation create-stack --stack-name lambda-esm-test --template-body file://lambda-esm-test-cfn.yaml --capabilities CAPABILITY_NAMED_IAM
+# `aws cloudformation create-stack --stack-name lambda-esm-test --template-body file://lambda-esm-test-cfn.yaml --capabilities CAPABILITY_NAMED_IAM`
 #
 #-----------------------------------------------------------------------------
 # TODO : This assuming of role shouldn't be performed in an usual deployment process. Use the CICD pipeline.
