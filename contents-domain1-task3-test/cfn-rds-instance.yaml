@@ -1,0 +1,56 @@
+# Create a stack with the following CLI command.
+# `aws cloudformation create-stack --stack-name free-tier-mysql-rds-stack --template-body file://cfn-rds-instance.yaml --parameters file://params.json`
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Free tier RDS MySQL instance
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where RDS will be launched
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets for DB subnet group (2+ in different AZs recommended)
+  AllowedCidr:
+    Type: String
+    Default: 172.31.0.0/16
+    Description: CIDR allowed to connect to MySQL in the created SG    
+
+Resources:
+  MyTestRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBInstanceIdentifier: my-test-rds-instance
+      AllocatedStorage: 20
+      DBInstanceClass: db.t4g.micro
+      VPCSecurityGroups: 
+        - !Ref DBInstanceSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      MasterUsername: masterawsuser
+      ManageMasterUserPassword: true
+      BackupRetentionPeriod: 0
+      MultiAZ: false
+
+  DBInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow MySQL from AllowedCidr
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: !Ref AllowedCidr
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-mysql-sg"      
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for MySQL RDS
+      SubnetIds: !Ref SubnetIds
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-db-subnet-group"      
